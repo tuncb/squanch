@@ -16,7 +16,7 @@ file(GLOB_RECURSE SRC_SQUANCH
 add_executable(squanch-tester ${SRC_TESTING} ${SRC_SQUANCH})
 
 target_link_libraries(squanch-tester ${CONAN_LIBS})
-target_include_directories(squanch-tester PRIVATE "../include/squanch/")
+target_include_directories(squanch-tester PRIVATE "../include/")
 
 source_group("squanch" FILES ${SRC_SQUANCH})
 

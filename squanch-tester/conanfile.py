@@ -5,7 +5,7 @@ class BlitzTestConan(ConanFile):
     name = "squanch-tester"
     settings = "os", "compiler", "build_type", "arch"
     generators = "cmake"
-    requires = "catch2/2.1.1@bincrafters/stable"
+    requires = "catch2/2.1.1@bincrafters/stable", "blitz/1.0.1@tuncb/pangea", "eigen/3.3.4@conan/stable"
 
     def build(self):
         cmake = CMake(self)
