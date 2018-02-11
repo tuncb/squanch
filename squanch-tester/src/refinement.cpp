@@ -393,6 +393,6 @@ TEST_CASE("line_refinement", "[refinement]")
     auto&& prism = extrude(model, surface, vec);
     h_refine_elements(model, prism, 5, 2, 2);
 
-    print_cps(model, prism);
+    //print_cps(model, prism);
   }
 }

@@ -2,9 +2,6 @@
 #include <vector>
 #include <Eigen/core>
 
-#include <boost/geometry.hpp>
-#include <boost/geometry/geometries/point.hpp>
-
 namespace igafem {
 
 double **init2DArray(int x, int y);

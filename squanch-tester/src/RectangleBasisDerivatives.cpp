@@ -106,9 +106,9 @@ inline void check_nurbs(const squanch::Model<double>& model, const squanch::Nurb
 				 std::cout << dv.transpose() << std::endl;*/
 
 			for (auto k = 0; k < num_cp; ++k) {
-				REQUIRE(r_ozp[k] == Approx(R[k]));
-				REQUIRE(der_ozp.col(0)[k] == Approx(du[k]));
-				REQUIRE(der_ozp.col(1)[k] == Approx(dv[k]));
+				REQUIRE(r_ozp[k] == Approx(R[k]).margin(1e-6));
+				REQUIRE(der_ozp.col(0)[k] == Approx(du[k]).margin(1e-6));
+				REQUIRE(der_ozp.col(1)[k] == Approx(dv[k]).margin(1e-6));
 			}
 		}
 	}
