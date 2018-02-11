@@ -1,4 +1,4 @@
-#include <boost/test/unit_test.hpp>
+#include "catch.hpp"
 #include <squanch/Model.h>
 #include <squanch/Nurbs.h>
 #include <squanch/Line.h>
@@ -106,15 +106,15 @@ inline void check_nurbs(const squanch::Model<double>& model, const squanch::Nurb
 				 std::cout << dv.transpose() << std::endl;*/
 
 			for (auto k = 0; k < num_cp; ++k) {
-				BOOST_CHECK_SMALL(r_ozp[k] - R[k], 0.000000001);
-				BOOST_CHECK_SMALL(der_ozp.col(0)[k] - du[k], 0.000001);
-				BOOST_CHECK_SMALL(der_ozp.col(1)[k] - dv[k], 0.000001);
+				REQUIRE(r_ozp[k] == Approx(R[k]));
+				REQUIRE(der_ozp.col(0)[k] == Approx(du[k]));
+				REQUIRE(der_ozp.col(1)[k] == Approx(dv[k]));
 			}
 		}
 	}
 }
 
-BOOST_AUTO_TEST_SUITE(RectangleBasisDerivatives)
+//BOOST_AUTO_TEST_SUITE(RectangleBasisDerivatives)
 //
 //BOOST_AUTO_TEST_CASE(RectangleBasisDerivatives_special) {
 //  const auto lx = 10.0;
@@ -169,52 +169,52 @@ BOOST_AUTO_TEST_SUITE(RectangleBasisDerivatives)
 //}
 //
 
-BOOST_AUTO_TEST_CASE(RectangleBasisDerivatives_main) {
+TEST_CASE("Rectangle derivatives", "[derivatives]")
+{
+  SECTION("RectangleBasisDerivatives_main") {
 
-	squanch::Model<double> model;
+    squanch::Model<double> model;
 
-	const auto lx = 25.0;
-	const auto ly = 5.0;
+    const auto lx = 25.0;
+    const auto ly = 5.0;
 
-	const auto nx = 20u;
-	const auto ny = 20u;
+    const auto nx = 20u;
+    const auto ny = 20u;
 
-	std::vector<unsigned int> p_vec = { 0, 1, 2, 3 };
-	std::vector<unsigned int> h_vec = { 15, 25 };
+    std::vector<unsigned int> p_vec = { 0, 1, 2, 3 };
+    std::vector<unsigned int> h_vec = { 15, 25 };
 
-	for (auto ip = 0u; ip < p_vec.size(); ++ip) {
-		for (auto ih = 0u; ih < h_vec.size(); ++ih) {
-			for (auto jp = 0u; jp < p_vec.size(); ++jp) {
-				for (auto jh = 0u; jh < h_vec.size(); ++jh) {
-					auto hx = h_vec[ih];
-					auto hy = h_vec[jh];
-					auto px = p_vec[ip];
-					auto py = p_vec[jp];
-					squanch::PointContainerTypes<double>::map_type cp;
-					auto&& rect = create_rectangle(model, lx, ly, hx, hy, px, py);
-					check_nurbs(model, rect, nx, ny);
-				}
-			}
-		}
-	}
+    for (auto ip = 0u; ip < p_vec.size(); ++ip) {
+      for (auto ih = 0u; ih < h_vec.size(); ++ih) {
+        for (auto jp = 0u; jp < p_vec.size(); ++jp) {
+          for (auto jh = 0u; jh < h_vec.size(); ++jh) {
+            auto hx = h_vec[ih];
+            auto hy = h_vec[jh];
+            auto px = p_vec[ip];
+            auto py = p_vec[jp];
+            squanch::PointContainerTypes<double>::map_type cp;
+            auto&& rect = create_rectangle(model, lx, ly, hx, hy, px, py);
+            check_nurbs(model, rect, nx, ny);
+          }
+        }
+      }
+    }
+  }
+
+
+  SECTION("RectangleBasisDerivatives_prefine_basic") {
+
+    squanch::Model<double> model;
+
+    const auto lx = 25.0;
+    const auto ly = 5.0;
+
+    const auto nx = 20u;
+    const auto ny = 20u;
+
+    squanch::PointContainerTypes<double>::map_type cp;
+    auto&& rect = create_rectangle(model, lx, ly, 2, 2, 1, 1);
+    check_nurbs(model, rect, nx, ny);
+  }
+
 }
-
-
-BOOST_AUTO_TEST_CASE(RectangleBasisDerivatives_prefine_basic) {
-
-	squanch::Model<double> model;
-
-	const auto lx = 25.0;
-	const auto ly = 5.0;
-
-	const auto nx = 20u;
-	const auto ny = 20u;
-
-	squanch::PointContainerTypes<double>::map_type cp;
-	auto&& rect = create_rectangle(model, lx, ly, 2, 2, 1, 1);
-	check_nurbs(model, rect, nx, ny);
-}
-
-
-
-BOOST_AUTO_TEST_SUITE_END()
