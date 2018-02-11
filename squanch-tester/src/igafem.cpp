@@ -1,6 +1,7 @@
 #include "igafem.h"
 
 #include <iostream>
+#include <array>
 
 double** igafem::init2DArray(int x, int y)
 {

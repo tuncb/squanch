@@ -1,4 +1,4 @@
-#include <boost/test/unit_test.hpp>
+#include "catch.hpp"
 #include <squanch/Model.h>
 #include <squanch/IgaAlgorithms.h>
 #include "igafem.h"
@@ -90,71 +90,70 @@ void create_sloped_rect(squanch::Model<double>& model, squanch::Nurbs<double, 3>
   nurbs.cpi()(0,3,1) = id15;
 }
 
-BOOST_AUTO_TEST_SUITE(sloped_rect3D)
-
-BOOST_AUTO_TEST_CASE(sloped_rect3D)
+TEST_CASE("sloped_rect3D", "[sloped_rect]")
 {
-  using namespace squanch;
-  squanch::Model<double> model;
-  auto&& nurbs = model.new_nurbs<3>();
-  create_sloped_rect(model, nurbs);
+  SECTION("sloped_rect3D")
+  {
+    using namespace squanch;
+    squanch::Model<double> model;
+    auto&& nurbs = model.new_nurbs<3>();
+    create_sloped_rect(model, nurbs);
 
-  const double du = 0.2; 
-  const double dv = 0.2; 
-  const double dk = 0.2; 
+    const double du = 0.2;
+    const double dv = 0.2;
+    const double dk = 0.2;
 
-  std::array<double, 3> u;
-  u.fill(0.0);
-  std::array<unsigned int, 3> span;
+    std::array<double, 3> u;
+    u.fill(0.0);
+    std::array<unsigned int, 3> span;
 
-  Eigen::VectorXd r(12);
-  Eigen::Matrix<double, -1, 3> der(12, 3);
-  Eigen::Vector4d point;
+    Eigen::VectorXd r(12);
+    Eigen::Matrix<double, -1, 3> der(12, 3);
+    Eigen::Vector4d point;
 
-  Eigen::VectorXd r2(12);
-  Eigen::VectorXd ders2_0(12);
-  Eigen::VectorXd ders2_1(12);
-  Eigen::VectorXd ders2_2(12);
+    Eigen::VectorXd r2(12);
+    Eigen::VectorXd ders2_0(12);
+    Eigen::VectorXd ders2_1(12);
+    Eigen::VectorXd ders2_2(12);
 
-  std::vector<double> weights;
-  Eigen::VectorXd weights2(12);
+    std::vector<double> weights;
+    Eigen::VectorXd weights2(12);
 
-  //std::cout << "--------------------------------------------------------------" << std::endl;
+    //std::cout << "--------------------------------------------------------------" << std::endl;
 
-  while (u[0] < 1.0) {
-    u[1] = 0.0;
-    while (u[1] < 1.0) {
-      u[2] = 0.0;
-      while (u[2] < 1.0) {
-        span[0] = find_span(nurbs.curves()[0].knots(), nurbs.curves()[0].p(), u[0]);
-        span[1] = find_span(nurbs.curves()[1].knots(), nurbs.curves()[1].p(), u[1]);
-        span[2] = find_span(nurbs.curves()[2].knots(), nurbs.curves()[2].p(), u[2]);
-      
-        gather_weights(model, nurbs, span, weights2);
-				for (auto i = 0; i < weights2.rows(); ++i) weights.push_back(weights2[i]);
+    while (u[0] < 1.0) {
+      u[1] = 0.0;
+      while (u[1] < 1.0) {
+        u[2] = 0.0;
+        while (u[2] < 1.0) {
+          span[0] = find_span(nurbs.curves()[0].knots(), nurbs.curves()[0].p(), u[0]);
+          span[1] = find_span(nurbs.curves()[1].knots(), nurbs.curves()[1].p(), u[1]);
+          span[2] = find_span(nurbs.curves()[2].knots(), nurbs.curves()[2].p(), u[2]);
 
-        compute_nurbs_ders1_basis(nurbs, span, u, weights2, r, der);
+          gather_weights(model, nurbs, span, weights2);
+          for (auto i = 0; i < weights2.rows(); ++i) weights.push_back(weights2[i]);
 
-        igafem::nurbs3DBasisDers(u[0], u[1], u[2], nurbs.curves()[0].p(), nurbs.curves()[1].p(), nurbs.curves()[2].p(),
-          nurbs.curves()[0].knots(), nurbs.curves()[1].knots(),nurbs.curves()[2].knots(),
-          weights, r2, ders2_0, ders2_1, ders2_2);
+          compute_nurbs_ders1_basis(nurbs, span, u, weights2, r, der);
 
-        BOOST_CHECK_CLOSE( r.sum(), 1.0, 0.00000001);
-        for (size_t i = 0; i < 6; ++i) {
-          if (abs(r[i]) > 0.00000001) BOOST_CHECK_CLOSE(r[i], r2[i], 0.00000001);
-          if (abs(der(i,0)) > 0.00000001) BOOST_CHECK_CLOSE(der.col(0)[i], ders2_0[i], 0.00001);
-          if (abs(der(i,1)) > 0.00000001) BOOST_CHECK_CLOSE(der.col(1)[i], ders2_1[i], 0.00001);
-          if (abs(der(i,2)) > 0.00000001) BOOST_CHECK_CLOSE(der.col(2)[i], ders2_2[i], 0.00001);
+          igafem::nurbs3DBasisDers(u[0], u[1], u[2], nurbs.curves()[0].p(), nurbs.curves()[1].p(), nurbs.curves()[2].p(),
+            nurbs.curves()[0].knots(), nurbs.curves()[1].knots(), nurbs.curves()[2].knots(),
+            weights, r2, ders2_0, ders2_1, ders2_2);
+
+          REQUIRE(r.sum() == Approx(1.0));
+          for (size_t i = 0; i < 6; ++i) {
+            if (abs(r[i]) > 0.00000001) REQUIRE(r[i] == Approx(r2[i]));
+            if (abs(der(i, 0)) > 0.00000001) REQUIRE(der.col(0)[i] == Approx(ders2_0[i]));
+            if (abs(der(i, 1)) > 0.00000001) REQUIRE(der.col(1)[i] == Approx(ders2_1[i]));
+            if (abs(der(i, 2)) > 0.00000001) REQUIRE(der.col(2)[i] == Approx(ders2_2[i]));
+          }
+
+          //compute_model_coordinate(nurbs, cp, span, r, point);
+          //std::cout << "u = " << u[0] << " : " << u[1] << " : " << u[2] << " point = " <<  point.transpose() << std::endl;
+          u[2] += dk;
         }
-
-        //compute_model_coordinate(nurbs, cp, span, r, point);
-        //std::cout << "u = " << u[0] << " : " << u[1] << " : " << u[2] << " point = " <<  point.transpose() << std::endl;
-        u[2] += dk;
+        u[1] += dv;
       }
-      u[1] += dv;
+      u[0] += du;
     }
-    u[0] += du;
   }
 }
-
-BOOST_AUTO_TEST_SUITE_END()

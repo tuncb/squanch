@@ -1,4 +1,4 @@
-#include <boost/test/unit_test.hpp>
+#include "catch.hpp"
 #include <squanch/Model.h>
 #include <squanch/Line.h>
 #include <squanch/Refinement.h>
@@ -100,7 +100,7 @@ template <unsigned int NDIM> void check_matrix(const Eigen::Matrix<double, -1, N
 		for (auto j = 0u; j < m1.cols(); ++j) {
 			auto val = std::abs(m1(i, j) - m2(i, j));
 			bool is_close = val < 1e-8;
-			BOOST_TEST(is_close);
+			REQUIRE(is_close == true);
 		}
 	}
 }
@@ -158,52 +158,47 @@ squanch::Nurbs<double, 1>& create_curve(squanch::Model<double>& model)
 	return curve;
 }
 
-
-BOOST_AUTO_TEST_SUITE(dornisch)
-
-BOOST_AUTO_TEST_CASE(curve)
+TEST_CASE("Dornisch", "[dornisch]")
 {
-  squanch::Model<double> model;
+  SECTION("curve")
+  {
+    squanch::Model<double> model;
 
-	auto&& curve = create_curve(model);
-	squanch::p_refine(model, curve,  3 );
-	squanch::h_refine_elements(model, curve, 10);
+    auto&& curve = create_curve(model);
+    squanch::p_refine(model, curve, 3);
+    squanch::h_refine_elements(model, curve, 10);
 
-	check_iga_computations<1>(model, curve, { { 0.05 } });
+    check_iga_computations<1>(model, curve, { { 0.05 } });
+  }
 
+  SECTION("surface")
+  {
+    squanch::Model<double> model;
+
+    auto&& curve = create_curve(model);
+    Eigen::Vector4d ex(0, 1, 0, 0);
+    auto&& surface = squanch::extrude(model, curve, ex);
+
+    squanch::p_refine(model, surface, { { 3, 0 } });
+    squanch::h_refine_elements(model, surface, 10, 1);
+
+    check_iga_computations<2>(model, surface, { { 0.05, 0.05 } });
+  }
+
+  SECTION("volume")
+  {
+    squanch::Model<double> model;
+
+    auto&& curve = create_curve(model);
+    Eigen::Vector4d ex(0, 1, 0, 0);
+    auto&& surface = squanch::extrude(model, curve, ex);
+    Eigen::Vector4d ex2(0, 0, 1, 0);
+    auto&& volume = squanch::extrude(model, surface, ex);
+
+    squanch::p_refine(model, volume, { { 3, 0, 0 } });
+    squanch::h_refine_elements(model, volume, 10, 1, 1);
+
+    const auto dt = .05;
+    check_iga_computations<3>(model, volume, { { dt, dt, dt } });
+  }
 }
-
-BOOST_AUTO_TEST_CASE(surface)
-{
-	squanch::Model<double> model;
-
-	auto&& curve = create_curve(model);
-	Eigen::Vector4d ex(0, 1, 0, 0);
-	auto&& surface = squanch::extrude(model, curve, ex);
-
-	squanch::p_refine(model, surface, { { 3, 0 } });
-	squanch::h_refine_elements(model, surface, 10,  1);
-
-	check_iga_computations<2>(model, surface, { { 0.05, 0.05 } });
-
-
-}
-
-BOOST_AUTO_TEST_CASE(volume)
-{
-	squanch::Model<double> model;
-
-	auto&& curve = create_curve(model);
-	Eigen::Vector4d ex(0, 1, 0, 0);
-	auto&& surface = squanch::extrude(model, curve, ex);
-	Eigen::Vector4d ex2(0, 0, 1, 0);
-	auto&& volume = squanch::extrude(model, surface, ex);
-
-  squanch::p_refine(model, volume, { {3, 0, 0} });
-	squanch::h_refine_elements(model, volume, 10, 1, 1);
-
-	const auto dt = .05;
-	check_iga_computations<3>(model, volume, { { dt, dt, dt } });
-}
-
-BOOST_AUTO_TEST_SUITE_END()

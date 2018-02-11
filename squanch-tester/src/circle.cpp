@@ -1,4 +1,4 @@
-#include <boost/test/unit_test.hpp>
+#include "catch.hpp"
 #include <squanch/Model.h>
 #include <squanch/IgaAlgorithms.h>
 #include <squanch/Circle.h>
@@ -53,93 +53,93 @@ void create_circle(squanch::Model<double>& model, squanch::Nurbs<double, 1>& nur
   nurbs.curves()[0].set_p(2);
 }
 
-BOOST_AUTO_TEST_SUITE(circle)
-BOOST_AUTO_TEST_CASE(circle)
+TEST_CASE("Circle", "[circle]") 
 {
-  using namespace squanch;
+  SECTION("Manual Cricle Creation")
+  {
+    using namespace squanch;
 
-  squanch::Model<double> model;
-  auto&& nurbs = model.new_nurbs<1>();
+    squanch::Model<double> model;
+    auto&& nurbs = model.new_nurbs<1>();
 
-  const double pi = 3.14159265359;
-  create_circle(model, nurbs);
+    const double pi = 3.14159265359;
+    create_circle(model, nurbs);
 
-  Eigen::VectorXd r(3);
-  Eigen::VectorXd r2(3);
-  Eigen::VectorXd ders(3);
-  Eigen::VectorXd ders2(3);
+    Eigen::VectorXd r(3);
+    Eigen::VectorXd r2(3);
+    Eigen::VectorXd ders(3);
+    Eigen::VectorXd ders2(3);
 
-  Eigen::Vector4d point;
-  std::vector<double> weights_vec;
-  Eigen::VectorXd weights, weights2(3);
+    Eigen::Vector4d point;
+    std::vector<double> weights_vec;
+    Eigen::VectorXd weights, weights2(3);
 
-  const double du = 0.1; 
-  double u = 0.0;
-  while (u < 2*pi - 0.75*du) {
-    auto span = find_span(nurbs.curves()[0].knots(), 2, u);
-    gather_weights(model, nurbs, span, weights);
-    gather_weights(model, nurbs, span, weights2);
+    const double du = 0.1;
+    double u = 0.0;
+    while (u < 2 * pi - 0.75*du) {
+      auto span = find_span(nurbs.curves()[0].knots(), 2, u);
+      gather_weights(model, nurbs, span, weights);
+      gather_weights(model, nurbs, span, weights2);
 
-		for (auto i = 0; i < weights.rows(); ++i) weights_vec.push_back(weights[i]);
+      for (auto i = 0; i < weights.rows(); ++i) weights_vec.push_back(weights[i]);
 
-    igafem::nurbs1DBasisDers(u, 2, nurbs.curves()[0].knots(), weights_vec, r2, ders2);  
-    compute_nurbs_ders1_basis(nurbs, span, u, weights2, r, ders);
-    
-    for (size_t i = 0; i <= 2; ++i) {
-      BOOST_CHECK_CLOSE( r[i], r2[i], 0.00000001);
-      BOOST_CHECK_CLOSE( ders(i, 0), ders2[i], 0.00000001);
+      igafem::nurbs1DBasisDers(u, 2, nurbs.curves()[0].knots(), weights_vec, r2, ders2);
+      compute_nurbs_ders1_basis(nurbs, span, u, weights2, r, ders);
+
+      for (size_t i = 0; i <= 2; ++i) {
+        REQUIRE(r[i] == Approx(r2[i]));
+        REQUIRE(ders(i, 0) == Approx(ders2[i]));
+      }
+
+      REQUIRE(r.sum() == Approx(1.0));
+      compute_model_coordinate(model, nurbs, span, r, point);
+      double distance2 = point.x() * point.x() + point.y() * point.y();
+      REQUIRE(distance2 == Approx(1.0));
+
+      u += pi / 12;
+    }
+  }
+
+  SECTION("Create with the Circle class")
+  {
+    using namespace squanch;
+
+    squanch::Model<double> model;
+
+    const double pi = 3.14159265359;
+
+    Circle<double, Eigen::Vector3d> circle;
+    circle.start_angle = 0.0;
+    circle.end_angle = 2 * pi;
+    circle.N1 = Eigen::Vector3d(1, 0, 0);
+    circle.N2 = Eigen::Vector3d(0, 1, 0);
+    circle.origin = Eigen::Vector3d(0, 0, 0);
+    circle.r = 1.0;
+    auto&& nurbs = circle.to_nurbs(model);
+
+    //print_cps(nurbs, model.control_points());
+
+    Eigen::VectorXd weights(nurbs.curves()[0].p() + 1);
+    Eigen::VectorXd r(nurbs.curves()[0].p() + 1);
+    Eigen::Vector4d point;
+    const double du = 0.1;
+    double u = 0.0;
+    while (u <= 1.0) {
+      auto span = find_span(nurbs.curves()[0].knots(), nurbs.curves()[0].p(), u);
+      gather_weights(model, nurbs, span, weights);
+
+      compute_b_basis(nurbs, span, u, r);
+
+      REQUIRE(r.sum() == Approx(1.0));
+      compute_model_coordinate(model, nurbs, span, r, point);
+      from_homogeneous(point);
+      double distance2 = point.x() * point.x() + point.y() * point.y();
+      REQUIRE(distance2 == Approx(1.0));
+
+      u += du;
     }
 
-    BOOST_CHECK_CLOSE( r.sum(), 1.0, 0.00000001);
-    compute_model_coordinate(model, nurbs, span, r, point);
-    double distance2 = point.x() * point.x() + point.y() * point.y();
-    BOOST_CHECK_CLOSE( distance2, 1.0, 0.00000001);
-  
-    u += pi/12;
+    REQUIRE(nurbs.curves()[0].is_closed() == true);
+    REQUIRE(nurbs.cpi()(0) == nurbs.cpi()(8));
   }
 }
-
-BOOST_AUTO_TEST_CASE(circle_geometry)
-{
-  using namespace squanch;
-
-  squanch::Model<double> model;
-  
-  const double pi = 3.14159265359;
-
-  Circle<double, Eigen::Vector3d> circle;
-  circle.start_angle = 0.0;
-  circle.end_angle   = 2*pi;
-  circle.N1 = Eigen::Vector3d(1,0,0);
-  circle.N2 = Eigen::Vector3d(0,1,0);
-  circle.origin = Eigen::Vector3d(0,0,0);
-  circle.r = 1.0;
-  auto&& nurbs = circle.to_nurbs(model);
-
-  //print_cps(nurbs, model.control_points());
-
-  Eigen::VectorXd weights(nurbs.curves()[0].p() + 1);
-  Eigen::VectorXd r(nurbs.curves()[0].p()+1);
-  Eigen::Vector4d point;
-  const double du = 0.1; 
-  double u = 0.0;
-  while (u <= 1.0) {
-    auto span = find_span(nurbs.curves()[0].knots(), nurbs.curves()[0].p(), u);
-    gather_weights(model, nurbs, span, weights);
-
-    compute_b_basis(nurbs, span, u, r);
-
-    BOOST_CHECK_CLOSE( r.sum(), 1.0, 0.000001);
-    compute_model_coordinate(model, nurbs, span, r, point);
-    from_homogeneous(point);
-    double distance2 = point.x() * point.x() + point.y() * point.y();
-    BOOST_CHECK_CLOSE( distance2, 1.0, 1);
-  
-    u += du;
-  }
-
-  BOOST_CHECK_EQUAL(nurbs.curves()[0].is_closed(), true);
-  BOOST_CHECK_EQUAL(nurbs.cpi()(0), nurbs.cpi()(8));
-}
-
-BOOST_AUTO_TEST_SUITE_END()
